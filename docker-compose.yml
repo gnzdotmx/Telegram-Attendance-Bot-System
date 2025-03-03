@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    environment:
+      - TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/attendance_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  monitor:
+    build: .
+    ports:
+      - "3366:3366"
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/attendance_db
+    command: python monitor/app.py
+    depends_on:
+      - postgres
+    
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: attendance_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
